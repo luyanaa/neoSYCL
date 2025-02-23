@@ -44,13 +44,13 @@ static void printVar(str& st, Decl* d, Data& data) {
 
   auto ty = dyn_cast<ConstantArrayType>(t.getTypePtr());
   if (ty == nullptr) {
-    t.removeLocalCVRQualifiers(Qualifiers::CVRMask);
+    t.removeLocalFastQualifiers(Qualifiers::CVRMask);
     st << t.getAsString();
     st << " " << vd->getNameAsString() << ";\n";
   }
   else {
     QualType et = ty->getElementType();
-    et.removeLocalCVRQualifiers(Qualifiers::CVRMask);
+    et.removeLocalFastQualifiers(Qualifiers::CVRMask);
     st << et.getAsString();
     st << " " << vd->getNameAsString();
     st << "[";
@@ -72,7 +72,7 @@ static void printVarDecls(CXXRecordDecl* functor_decl, Data& data,
     if (i.capturesVariable() == false) {
       continue; // ignore "this" is captured.
     }
-    VarDecl* decl = i.getCapturedVar();
+    VarDecl* decl = static_cast<VarDecl *>(i.getCapturedVar());
     if (decl) {
       QualType t = decl->getType();
       auto ti    = t.getBaseTypeIdentifier();
@@ -213,7 +213,7 @@ static void writeHostCode(str& os, Data& data, VarDeclFinder& finder) {
     if (first == false)
       os << ",";
     first  = false;
-    auto d = data.vlist[i]->getCapturedVar();
+    VarDecl* d =  static_cast<VarDecl *>(data.vlist[i]->getCapturedVar());
     if (data.vlist[i]->isExplicit() && d->hasInit()) {
       d->getInit()->printPretty(os, &data.helper, data.policy);
     }
@@ -349,7 +349,7 @@ bool KoutVisitor::VisitCXXMemberCallExpr(CXXMemberCallExpr* ce) {
     return true; // ignore static methods
 
   string fname = mdecl->getNameAsString();
-  string cname = mdecl->getThisObjectType().getAsString();
+  string cname = mdecl->getThisType().getAsString();
   string class_def;
 
   if (mdecl->getParent()->bases_begin()) {
